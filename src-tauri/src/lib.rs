@@ -1,6 +1,9 @@
 mod commands;
 mod scanner;
 
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::time::{SystemTime, UNIX_EPOCH};
+
 use tauri::{
     image::Image,
     menu::{MenuBuilder, MenuItemBuilder},
@@ -12,8 +15,21 @@ use tauri::{
 use tauri::WindowEvent;
 use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut};
 
+// Track when window was last shown to prevent immediate hide
+static LAST_SHOW_TIME: AtomicU64 = AtomicU64::new(0);
+
+fn get_current_time_ms() -> u64 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_millis() as u64
+}
+
 fn show_window(app: &tauri::AppHandle, position: Option<PhysicalPosition<f64>>) {
     if let Some(window) = app.get_webview_window("main") {
+        // Record show time to prevent immediate hide
+        LAST_SHOW_TIME.store(get_current_time_ms(), Ordering::SeqCst);
+
         // Position window near tray icon if position provided
         if let Some(pos) = position {
             // Get window size
@@ -153,7 +169,12 @@ pub fn run() {
                 if let Some(window) = app.get_webview_window("main") {
                     window.on_window_event(move |event| {
                         if let WindowEvent::Focused(false) = event {
-                            hide_window(&app_handle);
+                            // Prevent hiding if window was just shown (within 500ms)
+                            let last_show = LAST_SHOW_TIME.load(Ordering::SeqCst);
+                            let now = get_current_time_ms();
+                            if now - last_show > 500 {
+                                hide_window(&app_handle);
+                            }
                         }
                     });
                 }
