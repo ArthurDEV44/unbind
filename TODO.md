@@ -64,14 +64,15 @@
 ## Phase 3 - Polish
 
 ### Filtres
-- [ ] Filtre par range de ports
-- [ ] Filtre par nom de process
-- [ ] UI de filtrage
+- [x] Filtre par range de ports
+- [x] Filtre par nom de process
+- [x] UI de filtrage (dans Settings)
 
 ### Auto-start
-- [ ] Lancer au démarrage macOS
-- [ ] Lancer au démarrage Windows
-- [ ] Toggle dans les settings
+- [x] Lancer au démarrage macOS (LaunchAgent)
+- [x] Lancer au démarrage Windows
+- [x] Lancer au démarrage Linux
+- [x] Toggle dans les settings
 
 ### Theme
 - [x] Mode Light (design Apple-like)
@@ -79,7 +80,7 @@
 - [x] Mode Liquid Glass (glassmorphism)
 - [x] ThemeSwitcher component
 - [x] Persistance du thème (localStorage)
-- [ ] Détecter le thème système automatiquement
+- [x] Détecter le thème système automatiquement
 
 ## Phase 4 - Build & Release
 

@@ -1,6 +1,7 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useMemo } from 'react'
 import { usePortScanner } from '../hooks/usePortScanner'
 import { useFavorites } from '../hooks/useFavorites'
+import { useSettingsStore } from '../stores/settingsStore'
 import { type PortInfo } from '../stores/portStore'
 
 interface PortItemProps {
@@ -325,11 +326,37 @@ export function PortList() {
     removeFavorite,
     updateFavoriteLabel,
   } = useFavorites()
+  const { filter } = useSettingsStore()
 
   const [editingLabel, setEditingLabel] = useState<{
     port: number
     label: string
   } | null>(null)
+
+  // Apply filters to ports
+  const filteredPorts = useMemo(() => {
+    return ports.filter((port) => {
+      // Filter by min port
+      if (filter.minPort !== null && port.port < filter.minPort) {
+        return false
+      }
+      // Filter by max port
+      if (filter.maxPort !== null && port.port > filter.maxPort) {
+        return false
+      }
+      // Filter by process name (case-insensitive)
+      if (
+        filter.processName &&
+        !port.processName.toLowerCase().includes(filter.processName.toLowerCase())
+      ) {
+        return false
+      }
+      return true
+    })
+  }, [ports, filter])
+
+  const hasActiveFilters =
+    filter.minPort !== null || filter.maxPort !== null || filter.processName !== ''
 
   const handleToggleFavorite = async (port: number, label?: string) => {
     if (isFavorite(port)) {
@@ -373,7 +400,7 @@ export function PortList() {
           >
             Listening Ports
           </h2>
-          {ports.length > 0 && (
+          {filteredPorts.length > 0 && (
             <span
               className="text-xs font-medium px-2 py-0.5 rounded-full"
               style={{
@@ -381,7 +408,20 @@ export function PortList() {
                 color: '#ffffff',
               }}
             >
-              {ports.length}
+              {hasActiveFilters
+                ? `${filteredPorts.length}/${ports.length}`
+                : filteredPorts.length}
+            </span>
+          )}
+          {hasActiveFilters && (
+            <span
+              className="text-[10px] font-medium px-1.5 py-0.5 rounded"
+              style={{
+                background: 'rgba(251, 191, 36, 0.2)',
+                color: '#fbbf24',
+              }}
+            >
+              Filtered
             </span>
           )}
         </div>
@@ -434,8 +474,42 @@ export function PortList() {
           <LoadingState />
         ) : ports.length === 0 ? (
           <EmptyState />
+        ) : filteredPorts.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-12 px-4">
+            <div
+              className="w-14 h-14 rounded-2xl flex items-center justify-center mb-3"
+              style={{ background: 'var(--bg-tertiary)' }}
+            >
+              <svg
+                className="w-7 h-7"
+                style={{ color: 'var(--text-tertiary)' }}
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={1.5}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
+                />
+              </svg>
+            </div>
+            <p
+              className="text-sm font-medium"
+              style={{ color: 'var(--text-secondary)' }}
+            >
+              No matching ports
+            </p>
+            <p
+              className="text-xs mt-1"
+              style={{ color: 'var(--text-tertiary)' }}
+            >
+              Adjust filters in Settings to see more results.
+            </p>
+          </div>
         ) : (
-          ports.map((port) => (
+          filteredPorts.map((port) => (
             <PortItem
               key={`${port.port}-${port.pid}`}
               port={port}
