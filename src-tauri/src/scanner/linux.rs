@@ -261,3 +261,147 @@ pub fn kill_process(pid: u32) -> ScanResult<()> {
         Err(ScanError::from(format!("Failed to kill process: {}", stderr)))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_parse_address_port_ipv4() {
+        let result = parse_address_port("0.0.0.0:3000");
+        assert!(result.is_some());
+        let (addr, port) = result.unwrap();
+        assert_eq!(addr, "0.0.0.0");
+        assert_eq!(port, 3000);
+    }
+
+    #[test]
+    fn test_parse_address_port_ipv4_localhost() {
+        let result = parse_address_port("127.0.0.1:8080");
+        assert!(result.is_some());
+        let (addr, port) = result.unwrap();
+        assert_eq!(addr, "127.0.0.1");
+        assert_eq!(port, 8080);
+    }
+
+    #[test]
+    fn test_parse_address_port_ipv6() {
+        let result = parse_address_port("[::]:22");
+        assert!(result.is_some());
+        let (addr, port) = result.unwrap();
+        assert_eq!(addr, "[::]");
+        assert_eq!(port, 22);
+    }
+
+    #[test]
+    fn test_parse_address_port_ipv6_full() {
+        let result = parse_address_port("[::1]:443");
+        assert!(result.is_some());
+        let (addr, port) = result.unwrap();
+        assert_eq!(addr, "[::1]");
+        assert_eq!(port, 443);
+    }
+
+    #[test]
+    fn test_parse_address_port_invalid() {
+        let result = parse_address_port("invalid");
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_parse_address_port_no_port() {
+        let result = parse_address_port("0.0.0.0");
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_parse_users_field_simple() {
+        let (pid, name) = parse_users_field(r#"users:(("node",pid=1234,fd=3))"#);
+        assert_eq!(pid, 1234);
+        assert_eq!(name, "node");
+    }
+
+    #[test]
+    fn test_parse_users_field_with_hyphen() {
+        let (pid, name) = parse_users_field(r#"users:(("my-app",pid=5678,fd=4))"#);
+        assert_eq!(pid, 5678);
+        assert_eq!(name, "my-app");
+    }
+
+    #[test]
+    fn test_parse_users_field_multiple_processes() {
+        // Takes the first process name
+        let (pid, name) =
+            parse_users_field(r#"users:(("node",pid=1234,fd=3),("worker",pid=1235,fd=4))"#);
+        assert_eq!(pid, 1234);
+        assert_eq!(name, "node");
+    }
+
+    #[test]
+    fn test_parse_users_field_empty() {
+        let (pid, name) = parse_users_field("");
+        assert_eq!(pid, 0);
+        assert_eq!(name, "unknown");
+    }
+
+    #[test]
+    fn test_parse_users_field_malformed() {
+        let (pid, name) = parse_users_field("not_valid_format");
+        assert_eq!(pid, 0);
+        assert_eq!(name, "unknown");
+    }
+
+    #[test]
+    fn test_parse_ss_line_tcp() {
+        let line = "LISTEN    0       4096       0.0.0.0:3000         0.0.0.0:*       users:((\"node\",pid=1234,fd=20))";
+        let result = parse_ss_line(line);
+
+        assert!(result.is_some());
+        let info = result.unwrap();
+        assert_eq!(info.port, 3000);
+        assert_eq!(info.pid, 1234);
+        assert_eq!(info.process_name, "node");
+        assert_eq!(info.protocol, "tcp");
+        assert_eq!(info.local_address, "0.0.0.0");
+        assert_eq!(info.state, "LISTEN");
+    }
+
+    #[test]
+    fn test_parse_ss_line_ipv6() {
+        let line = "LISTEN    0       128        [::]:22              [::]:*          users:((\"sshd\",pid=1,fd=3))";
+        let result = parse_ss_line(line);
+
+        assert!(result.is_some());
+        let info = result.unwrap();
+        assert_eq!(info.port, 22);
+        assert_eq!(info.pid, 1);
+        assert_eq!(info.process_name, "sshd");
+        assert_eq!(info.local_address, "[::]");
+    }
+
+    #[test]
+    fn test_parse_ss_line_no_process() {
+        // Line without process info (e.g., kernel socket)
+        let line = "LISTEN    0       128        0.0.0.0:111          0.0.0.0:*";
+        let result = parse_ss_line(line);
+
+        assert!(result.is_some());
+        let info = result.unwrap();
+        assert_eq!(info.port, 111);
+        assert_eq!(info.pid, 0);
+        assert_eq!(info.process_name, "unknown");
+    }
+
+    #[test]
+    fn test_parse_ss_line_too_short() {
+        let line = "LISTEN 0 128";
+        let result = parse_ss_line(line);
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_parse_ss_line_empty() {
+        let result = parse_ss_line("");
+        assert!(result.is_none());
+    }
+}

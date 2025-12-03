@@ -109,15 +109,17 @@
 ## Tests & Documentation
 
 ### Tests
-- [ ] Tests unitaires scanner de ports (mocks)
-- [ ] Tests kill process
-- [ ] Tests CRUD favoris/historique
+- [x] Tests unitaires scanner de ports (mocks) — Vitest + mocks Tauri
+- [x] Tests kill process — Vitest avec mocks invoke
+- [x] Tests CRUD favoris/historique — Vitest avec mocks SQLite
+- [x] Tests Rust scanner (parsing ss, address, users) — cargo test
 
 ### Documentation
-- [ ] README avec instructions d'installation
+- [x] README avec instructions d'installation
 - [ ] Screenshots de l'app
-- [ ] Documenter permissions macOS sandbox
-- [ ] Documenter permissions Windows (admin si nécessaire)
+- [x] Documenter permissions macOS sandbox
+- [x] Documenter permissions Windows (admin si nécessaire)
+- [x] Documenter permissions Linux
 
 ## Notes
 - **Jamais utiliser npm** - uniquement bun ou pnpm
