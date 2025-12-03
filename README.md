@@ -24,13 +24,15 @@ A modern, cross-platform port manager that lives in your menu bar. Stop hunting 
 
 ### Download
 
-Pre-built binaries are available on the [Releases](https://github.com/your-username/unbind/releases) page:
+Pre-built binaries are available on the [Releases](https://github.com/ArthurDEV44/unbind/releases) page:
 
 | Platform | Download |
 |----------|----------|
 | macOS (Intel/Apple Silicon) | `.dmg` |
 | Windows | `.msi` or `.exe` |
 | Linux | `.deb` or `.AppImage` |
+
+> **Windows:** If SmartScreen shows "Windows protected your PC", click **"More info"** → **"Run anyway"**. This happens because the app is not yet code-signed. A signed version is coming soon.
 
 ### Prerequisites (Development)
 
