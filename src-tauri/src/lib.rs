@@ -11,8 +11,7 @@ use tauri::{
     Manager, PhysicalPosition,
 };
 
-// TODO: Revert to #[cfg(not(debug_assertions))] after testing
-// #[cfg(not(debug_assertions))]
+#[cfg(not(debug_assertions))]
 use tauri::WindowEvent;
 use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut};
 
@@ -173,8 +172,7 @@ pub fn run() {
                 .build(app)?;
 
             // Hide window when it loses focus (menu bar behavior)
-            // TODO: Revert to #[cfg(not(debug_assertions))] after testing
-            // #[cfg(not(debug_assertions))]
+            #[cfg(not(debug_assertions))]
             {
                 let app_handle = app.handle().clone();
                 if let Some(window) = app.get_webview_window("main") {
