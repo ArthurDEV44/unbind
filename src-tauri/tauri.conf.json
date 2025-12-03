@@ -18,11 +18,13 @@
         "height": 500,
         "resizable": false,
         "fullscreen": false,
-        "visible": true,
-        "decorations": true,
-        "skipTaskbar": false,
-        "alwaysOnTop": false,
-        "focus": true
+        "visible": false,
+        "decorations": false,
+        "skipTaskbar": true,
+        "alwaysOnTop": true,
+        "focus": true,
+        "transparent": false,
+        "shadow": true
       }
     ],
     "security": {
@@ -42,6 +44,31 @@
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
-    ]
+    ],
+    "category": "DeveloperTool",
+    "shortDescription": "Port Manager Menu Bar App",
+    "longDescription": "Unbind is a lightweight menu bar application that helps developers manage listening ports. Quickly view, filter, and kill processes occupying ports.",
+    "linux": {
+      "appimage": {
+        "bundleMediaFramework": false
+      },
+      "deb": {
+        "depends": ["libwebkit2gtk-4.1-0", "libgtk-3-0", "libayatana-appindicator3-1"]
+      }
+    },
+    "macOS": {
+      "minimumSystemVersion": "10.15"
+    },
+    "windows": {
+      "webviewInstallMode": {
+        "type": "downloadBootstrapper"
+      }
+    }
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "",
+      "endpoints": []
+    }
   }
 }

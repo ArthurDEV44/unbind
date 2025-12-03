@@ -85,20 +85,26 @@
 ## Phase 4 - Build & Release
 
 ### Mode Menu Bar (builds natifs)
-- [ ] Réactiver `visible: false` dans tauri.conf.json
-- [ ] Réactiver `decorations: false` pour fenêtre sans bordure
-- [ ] Réactiver `skipTaskbar: true`
-- [ ] Réactiver `alwaysOnTop: true`
-- [ ] Réactiver "hide on blur" dans lib.rs (cacher fenêtre quand elle perd le focus)
+- [x] Réactiver `visible: false` dans tauri.conf.json
+- [x] Réactiver `decorations: false` pour fenêtre sans bordure
+- [x] Réactiver `skipTaskbar: true`
+- [x] Réactiver `alwaysOnTop: true`
+- [x] Réactiver "hide on blur" dans lib.rs (release mode only, désactivé en debug pour WSL2)
 - [ ] Tester sur macOS natif
 - [ ] Tester sur Windows natif
 
 ### Build & Distribution
-- [ ] Build macOS (.dmg)
-- [ ] Build Windows (.msi / .exe)
-- [ ] Build Linux (.deb / .AppImage)
+- [x] Configurer bundler Linux (.deb, .AppImage)
+- [x] Configurer bundler macOS (.dmg avec minimumSystemVersion)
+- [x] Configurer bundler Windows (.msi/.exe avec WebView2 bootstrapper)
 - [ ] Signer l'application (code signing)
-- [ ] Configurer auto-update
+- [x] Configurer plugin auto-update (UI dans Settings)
+
+### Limitations WSL2
+- WSL2 ne peut compiler que des bundles Linux (.deb, .AppImage)
+- Pour Windows (.msi/.exe): utiliser PowerShell natif Windows
+- Pour macOS (.dmg): utiliser un Mac natif
+- Hide on blur désactivé en mode debug pour compatibilité WSL2
 
 ## Tests & Documentation
 

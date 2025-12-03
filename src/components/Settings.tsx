@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useSettingsStore } from '../stores/settingsStore'
 import { useAutoStart } from '../hooks/useAutoStart'
+import { useUpdater } from '../hooks/useUpdater'
 
 interface SettingsPanelProps {
   isOpen: boolean
@@ -39,7 +40,24 @@ export function SettingsPanel({ isOpen, onClose }: SettingsPanelProps) {
   const { filter, setFilter, resetFilter, useSystemTheme, setUseSystemTheme } =
     useSettingsStore()
   const { autoStart, toggleAutoStart } = useAutoStart()
+  const { checking, updating, updateAvailable, checkForUpdates, installUpdate } =
+    useUpdater()
   const [isToggling, setIsToggling] = useState(false)
+  const [appVersion, setAppVersion] = useState('0.1.0')
+
+  // Get app version on mount
+  useEffect(() => {
+    const getVersion = async () => {
+      try {
+        const { getVersion } = await import('@tauri-apps/api/app')
+        const version = await getVersion()
+        setAppVersion(version)
+      } catch {
+        // Fallback to default version
+      }
+    }
+    getVersion()
+  }, [])
 
   const handleAutoStartToggle = async () => {
     setIsToggling(true)
@@ -314,6 +332,62 @@ export function SettingsPanel({ isOpen, onClose }: SettingsPanelProps) {
               </kbd>
             </div>
           </section>
+
+          {/* Updates Section */}
+          <section>
+            <h4
+              className="text-xs font-semibold uppercase tracking-wide mb-3"
+              style={{ color: 'var(--text-tertiary)' }}
+            >
+              Updates
+            </h4>
+
+            <div className="flex items-center justify-between py-2">
+              <div>
+                <p
+                  className="text-sm font-medium"
+                  style={{ color: 'var(--text-primary)' }}
+                >
+                  {updateAvailable
+                    ? `Update available: v${updateAvailable.version}`
+                    : `Current version: v${appVersion}`}
+                </p>
+                {updateAvailable && (
+                  <p
+                    className="text-xs"
+                    style={{ color: 'var(--text-tertiary)' }}
+                  >
+                    {updateAvailable.body || 'A new version is available'}
+                  </p>
+                )}
+              </div>
+              {updateAvailable ? (
+                <button
+                  onClick={installUpdate}
+                  disabled={updating}
+                  className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors disabled:opacity-50"
+                  style={{
+                    background: 'var(--accent)',
+                    color: '#ffffff',
+                  }}
+                >
+                  {updating ? 'Installing...' : 'Install'}
+                </button>
+              ) : (
+                <button
+                  onClick={checkForUpdates}
+                  disabled={checking}
+                  className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors disabled:opacity-50"
+                  style={{
+                    background: 'var(--bg-tertiary)',
+                    color: 'var(--text-secondary)',
+                  }}
+                >
+                  {checking ? 'Checking...' : 'Check'}
+                </button>
+              )}
+            </div>
+          </section>
         </div>
 
         {/* Footer */}
@@ -328,7 +402,7 @@ export function SettingsPanel({ isOpen, onClose }: SettingsPanelProps) {
             className="text-[10px]"
             style={{ color: 'var(--text-tertiary)' }}
           >
-            Unbind v0.1.0
+            Unbind v{appVersion}
           </span>
         </div>
       </div>

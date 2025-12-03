@@ -7,6 +7,9 @@ use tauri::{
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
     Manager, PhysicalPosition,
 };
+
+#[cfg(not(debug_assertions))]
+use tauri::WindowEvent;
 use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut};
 
 fn show_window(app: &tauri::AppHandle, position: Option<PhysicalPosition<f64>>) {
@@ -57,6 +60,8 @@ pub fn run() {
             tauri_plugin_autostart::MacosLauncher::LaunchAgent,
             None,
         ))
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_process::init())
         .plugin(
             tauri_plugin_global_shortcut::Builder::new()
                 .with_handler(|app, shortcut, event| {
@@ -140,8 +145,19 @@ pub fn run() {
                 })
                 .build(app)?;
 
-            // Note: "hide on blur" disabled for WSL2 compatibility
-            // Can be re-enabled on native macOS/Windows for menu bar behavior
+            // Hide window when it loses focus (menu bar behavior)
+            // This is disabled in debug mode for WSL2 compatibility
+            #[cfg(not(debug_assertions))]
+            {
+                let app_handle = app.handle().clone();
+                if let Some(window) = app.get_webview_window("main") {
+                    window.on_window_event(move |event| {
+                        if let WindowEvent::Focused(false) = event {
+                            hide_window(&app_handle);
+                        }
+                    });
+                }
+            }
 
             Ok(())
         })
