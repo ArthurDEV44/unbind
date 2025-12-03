@@ -17,6 +17,8 @@ use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut}
 
 // Track when window was last shown to prevent immediate hide
 static LAST_SHOW_TIME: AtomicU64 = AtomicU64::new(0);
+// Track when tray icon was last clicked (to ignore focus-lost from mouse down)
+static LAST_TRAY_CLICK_TIME: AtomicU64 = AtomicU64::new(0);
 
 fn get_current_time_ms() -> u64 {
     SystemTime::now()
@@ -148,15 +150,23 @@ pub fn run() {
                     }
                 })
                 .on_tray_icon_event(|tray, event| {
-                    if let TrayIconEvent::Click {
-                        button: MouseButton::Left,
-                        button_state: MouseButtonState::Up,
-                        position,
-                        ..
-                    } = event
-                    {
-                        let app = tray.app_handle();
-                        toggle_window_visibility(app, Some(position));
+                    match event {
+                        TrayIconEvent::Click {
+                            button: MouseButton::Left,
+                            button_state: MouseButtonState::Up,
+                            position,
+                            ..
+                        } => {
+                            // Record click time to prevent focus-lost from hiding window
+                            LAST_TRAY_CLICK_TIME.store(get_current_time_ms(), Ordering::SeqCst);
+                            let app = tray.app_handle();
+                            toggle_window_visibility(app, Some(position));
+                        }
+                        TrayIconEvent::Enter { .. } => {
+                            // Mouse entering tray area - record time to debounce
+                            LAST_TRAY_CLICK_TIME.store(get_current_time_ms(), Ordering::SeqCst);
+                        }
+                        _ => {}
                     }
                 })
                 .build(app)?;
@@ -169,10 +179,15 @@ pub fn run() {
                 if let Some(window) = app.get_webview_window("main") {
                     window.on_window_event(move |event| {
                         if let WindowEvent::Focused(false) = event {
-                            // Prevent hiding if window was just shown (within 500ms)
-                            let last_show = LAST_SHOW_TIME.load(Ordering::SeqCst);
                             let now = get_current_time_ms();
-                            if now - last_show > 500 {
+                            let last_show = LAST_SHOW_TIME.load(Ordering::SeqCst);
+                            let last_tray_click = LAST_TRAY_CLICK_TIME.load(Ordering::SeqCst);
+
+                            // Prevent hiding if:
+                            // - Window was just shown (within 300ms)
+                            // - Tray icon was just clicked/hovered (within 300ms) - prevents mouse-down hide
+                            let debounce_ms = 300;
+                            if now - last_show > debounce_ms && now - last_tray_click > debounce_ms {
                                 hide_window(&app_handle);
                             }
                         }
