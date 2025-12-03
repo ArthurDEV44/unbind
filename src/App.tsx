@@ -1,10 +1,16 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { PortList } from './components/PortList'
+import { HistoryPanel } from './components/History'
 import { ThemeSwitcher } from './components/ThemeSwitcher'
 import { useThemeStore } from './stores/themeStore'
+import { useFavoritePortNotifications } from './hooks/useNotifications'
 
 function App() {
   const { theme } = useThemeStore()
+  const [showHistory, setShowHistory] = useState(false)
+
+  // Enable notifications for favorite ports
+  useFavoritePortNotifications()
 
   // Apply theme to document
   useEffect(() => {
@@ -63,9 +69,40 @@ function App() {
           </span>
         </div>
 
-        {/* Theme Switcher */}
-        <ThemeSwitcher />
+        {/* Actions */}
+        <div className="flex items-center gap-1">
+          {/* History Button */}
+          <button
+            onClick={() => setShowHistory(true)}
+            className="p-2 rounded-lg transition-all duration-200"
+            style={{
+              background: 'var(--bg-tertiary)',
+              color: 'var(--text-secondary)',
+            }}
+            title="Kill History"
+          >
+            <svg
+              className="w-4 h-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+          </button>
+
+          {/* Theme Switcher */}
+          <ThemeSwitcher />
+        </div>
       </header>
+
+      {/* History Panel */}
+      <HistoryPanel isOpen={showHistory} onClose={() => setShowHistory(false)} />
 
       {/* Main content */}
       <main className="flex-1 overflow-hidden">

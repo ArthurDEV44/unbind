@@ -1,5 +1,6 @@
 import { useEffect, useCallback, useRef, useState } from 'react'
 import { usePortStore, type PortInfo } from '../stores/portStore'
+import { addKillHistory } from '../lib/database'
 
 interface CommandResponse<T> {
   success: boolean
@@ -74,25 +75,36 @@ export function usePortScanner() {
     }
   }, [tauriReady, setPorts, setLoading, setError])
 
-  const killProcess = useCallback(async (pid: number): Promise<boolean> => {
-    if (!tauriReady) return false
+  const killProcess = useCallback(
+    async (pid: number, portInfo?: { port: number; processName: string }): Promise<boolean> => {
+      if (!tauriReady) return false
 
-    try {
-      const { invoke } = await import('@tauri-apps/api/core')
-      const response = await invoke<CommandResponse<null>>('kill_process', { pid })
+      try {
+        const { invoke } = await import('@tauri-apps/api/core')
+        const response = await invoke<CommandResponse<null>>('kill_process', { pid })
 
-      if (response.success) {
-        await scanPorts()
-        return true
-      } else {
-        setError(response.error || 'Failed to kill process')
+        if (response.success) {
+          // Log to history if port info is provided
+          if (portInfo) {
+            try {
+              await addKillHistory(portInfo.port, pid, portInfo.processName)
+            } catch (historyErr) {
+              console.error('Failed to log kill to history:', historyErr)
+            }
+          }
+          await scanPorts()
+          return true
+        } else {
+          setError(response.error || 'Failed to kill process')
+          return false
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Unknown error')
         return false
       }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error')
-      return false
-    }
-  }, [tauriReady, scanPorts, setError])
+    },
+    [tauriReady, scanPorts, setError]
+  )
 
   // Start polling
   const startPolling = useCallback(() => {

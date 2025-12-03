@@ -7,6 +7,7 @@ use tauri::{
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
     Manager, PhysicalPosition,
 };
+use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut};
 
 fn show_window(app: &tauri::AppHandle, position: Option<PhysicalPosition<f64>>) {
     if let Some(window) = app.get_webview_window("main") {
@@ -51,6 +52,23 @@ fn toggle_window_visibility(app: &tauri::AppHandle, position: Option<PhysicalPos
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_sql::Builder::new().build())
+        .plugin(tauri_plugin_notification::init())
+        .plugin(
+            tauri_plugin_global_shortcut::Builder::new()
+                .with_handler(|app, shortcut, event| {
+                    if event.state() == tauri_plugin_global_shortcut::ShortcutState::Pressed {
+                        // Check if it's our Ctrl+Shift+P shortcut
+                        let expected = Shortcut::new(
+                            Some(Modifiers::CONTROL | Modifiers::SHIFT),
+                            Code::KeyP,
+                        );
+                        if shortcut == &expected {
+                            toggle_window_visibility(app, None);
+                        }
+                    }
+                })
+                .build(),
+        )
         .invoke_handler(tauri::generate_handler![
             commands::scan_ports,
             commands::kill_process,
@@ -63,6 +81,14 @@ pub fn run() {
                         .level(log::LevelFilter::Info)
                         .build(),
                 )?;
+            }
+
+            // Register global shortcut: Ctrl+Shift+P (Windows/Linux) or Cmd+Shift+P (macOS)
+            let shortcut = Shortcut::new(Some(Modifiers::CONTROL | Modifiers::SHIFT), Code::KeyP);
+            if let Err(e) = app.global_shortcut().register(shortcut) {
+                log::warn!("Failed to register Ctrl+Shift+P shortcut: {}", e);
+            } else {
+                log::info!("Registered global shortcut: Ctrl+Shift+P");
             }
 
             // Build tray menu

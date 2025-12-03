@@ -1,21 +1,48 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { usePortScanner } from '../hooks/usePortScanner'
-import { usePortStore, type PortInfo } from '../stores/portStore'
+import { useFavorites } from '../hooks/useFavorites'
+import { type PortInfo } from '../stores/portStore'
 
 interface PortItemProps {
   port: PortInfo
-  onKill: (pid: number) => Promise<boolean>
+  onKill: (pid: number, portInfo: { port: number; processName: string }) => Promise<boolean>
+  isFavorite: boolean
   favoriteLabel?: string
+  onToggleFavorite: (port: number, label?: string) => Promise<void>
+  onEditFavoriteLabel: (port: number, currentLabel: string) => void
 }
 
-function PortItem({ port, onKill, favoriteLabel }: PortItemProps) {
+function PortItem({
+  port,
+  onKill,
+  isFavorite,
+  favoriteLabel,
+  onToggleFavorite,
+  onEditFavoriteLabel,
+}: PortItemProps) {
   const [isKilling, setIsKilling] = useState(false)
   const [isHovered, setIsHovered] = useState(false)
 
   const handleKill = async () => {
     setIsKilling(true)
-    await onKill(port.pid)
+    await onKill(port.pid, { port: port.port, processName: port.processName })
     setIsKilling(false)
+  }
+
+  const handleFavoriteClick = async (e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (isFavorite) {
+      await onToggleFavorite(port.port)
+    } else {
+      await onToggleFavorite(port.port, port.processName)
+    }
+  }
+
+  const handleLabelClick = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (isFavorite && favoriteLabel) {
+      onEditFavoriteLabel(port.port, favoriteLabel)
+    }
   }
 
   return (
@@ -28,14 +55,39 @@ function PortItem({ port, onKill, favoriteLabel }: PortItemProps) {
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
+      {/* Favorite button */}
+      <button
+        onClick={handleFavoriteClick}
+        className="p-1 rounded transition-all duration-200 mr-2"
+        style={{
+          color: isFavorite ? '#fbbf24' : 'var(--text-tertiary)',
+          opacity: isHovered || isFavorite ? 1 : 0.5,
+        }}
+        title={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+      >
+        <svg
+          className="w-4 h-4"
+          fill={isFavorite ? 'currentColor' : 'none'}
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          strokeWidth={2}
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"
+          />
+        </svg>
+      </button>
+
       {/* Port info */}
       <div className="flex items-center gap-3 min-w-0 flex-1">
         {/* Port badge */}
         <div
           className="flex items-center justify-center min-w-[72px] px-3 py-1.5 rounded-lg font-mono text-sm font-semibold"
           style={{
-            background: 'var(--accent)',
-            color: '#ffffff',
+            background: isFavorite ? '#fbbf24' : 'var(--accent)',
+            color: isFavorite ? '#1f2937' : '#ffffff',
           }}
         >
           :{port.port}
@@ -66,7 +118,14 @@ function PortItem({ port, onKill, favoriteLabel }: PortItemProps) {
           >
             PID {port.pid}
             {favoriteLabel && (
-              <span style={{ color: 'var(--accent)' }}> · {favoriteLabel}</span>
+              <button
+                onClick={handleLabelClick}
+                className="hover:underline cursor-pointer"
+                style={{ color: '#fbbf24' }}
+                title="Click to edit label"
+              >
+                {' '}· {favoriteLabel}
+              </button>
             )}
           </span>
         </div>
@@ -152,16 +211,156 @@ function LoadingState() {
   )
 }
 
+interface LabelModalProps {
+  isOpen: boolean
+  port: number
+  currentLabel: string
+  onSave: (label: string) => void
+  onClose: () => void
+}
+
+function LabelModalContent({
+  port,
+  currentLabel,
+  onSave,
+  onClose,
+}: Omit<LabelModalProps, 'isOpen'>) {
+  const [label, setLabel] = useState(currentLabel)
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    const timer = setTimeout(() => inputRef.current?.focus(), 100)
+    return () => clearTimeout(timer)
+  }, [])
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (label.trim()) {
+      onSave(label.trim())
+    }
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Escape') {
+      onClose()
+    }
+  }
+
+  return (
+    <div
+      className="fixed inset-0 flex items-center justify-center z-50"
+      style={{ background: 'rgba(0, 0, 0, 0.5)' }}
+      onClick={onClose}
+    >
+      <div
+        className="rounded-xl p-4 w-80 shadow-xl"
+        style={{
+          background: 'var(--bg-primary)',
+          border: '1px solid var(--border-color)',
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h3
+          className="text-sm font-semibold mb-3"
+          style={{ color: 'var(--text-primary)' }}
+        >
+          Edit Label for Port {port}
+        </h3>
+        <form onSubmit={handleSubmit}>
+          <input
+            ref={inputRef}
+            type="text"
+            value={label}
+            onChange={(e) => setLabel(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="e.g., Next.js dev server"
+            className="w-full px-3 py-2 rounded-lg text-sm mb-3 outline-none"
+            style={{
+              background: 'var(--bg-secondary)',
+              border: '1px solid var(--border-color)',
+              color: 'var(--text-primary)',
+            }}
+          />
+          <div className="flex gap-2 justify-end">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
+              style={{
+                background: 'var(--bg-tertiary)',
+                color: 'var(--text-secondary)',
+              }}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
+              style={{
+                background: 'var(--accent)',
+                color: '#ffffff',
+              }}
+            >
+              Save
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
+
+function LabelModal({ isOpen, ...props }: LabelModalProps) {
+  if (!isOpen) return null
+  // Key forces remount when currentLabel changes, resetting internal state
+  return <LabelModalContent key={props.currentLabel} {...props} />
+}
+
 export function PortList() {
   const { ports, isLoading, error, scanPorts, killProcess } = usePortScanner()
-  const { favorites } = usePortStore()
+  const {
+    isFavorite,
+    getFavoriteLabel,
+    addFavorite,
+    removeFavorite,
+    updateFavoriteLabel,
+  } = useFavorites()
 
-  const getFavoriteLabel = (port: number): string | undefined => {
-    return favorites.find((f) => f.port === port)?.label
+  const [editingLabel, setEditingLabel] = useState<{
+    port: number
+    label: string
+  } | null>(null)
+
+  const handleToggleFavorite = async (port: number, label?: string) => {
+    if (isFavorite(port)) {
+      await removeFavorite(port)
+    } else {
+      await addFavorite({ port, label: label || `Port ${port}` })
+    }
+  }
+
+  const handleEditLabel = (port: number, currentLabel: string) => {
+    setEditingLabel({ port, label: currentLabel })
+  }
+
+  const handleSaveLabel = async (label: string) => {
+    if (editingLabel) {
+      await updateFavoriteLabel(editingLabel.port, label)
+      setEditingLabel(null)
+    }
   }
 
   return (
     <div className="flex flex-col h-full">
+      {/* Label Edit Modal */}
+      <LabelModal
+        isOpen={editingLabel !== null}
+        port={editingLabel?.port || 0}
+        currentLabel={editingLabel?.label || ''}
+        onSave={handleSaveLabel}
+        onClose={() => setEditingLabel(null)}
+      />
+
       {/* Header */}
       <div
         className="flex items-center justify-between px-4 py-3"
@@ -241,7 +440,10 @@ export function PortList() {
               key={`${port.port}-${port.pid}`}
               port={port}
               onKill={killProcess}
+              isFavorite={isFavorite(port.port)}
               favoriteLabel={getFavoriteLabel(port.port)}
+              onToggleFavorite={handleToggleFavorite}
+              onEditFavoriteLabel={handleEditLabel}
             />
           ))
         )}

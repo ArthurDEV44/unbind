@@ -42,24 +42,24 @@
 ## Phase 2 - UX
 
 ### Favoris
-- [ ] Schema SQLite pour les favoris
-- [ ] CRUD favoris (Rust commands)
-- [ ] UI pour marquer un port comme favori
-- [ ] Labels custom (ex: "Port 3000 = Next.js dev")
+- [x] Schema SQLite pour les favoris
+- [x] CRUD favoris (via TypeScript + Tauri SQL plugin)
+- [x] UI pour marquer un port comme favori
+- [x] Labels custom (ex: "Port 3000 = Next.js dev")
 
 ### Historique
-- [ ] Schema SQLite pour l'historique
-- [ ] Logger les kills (timestamp, port, process)
-- [ ] Limiter à 50 entrées
-- [ ] UI pour consulter l'historique
+- [x] Schema SQLite pour l'historique
+- [x] Logger les kills (timestamp, port, process)
+- [x] Limiter à 50 entrées
+- [x] UI pour consulter l'historique
 
 ### Raccourci Clavier
-- [ ] Enregistrer Cmd+Shift+P (macOS) / Ctrl+Shift+P (Windows)
-- [ ] Ouvrir/fermer le panel
+- [x] Enregistrer Cmd+Shift+P (macOS) / Ctrl+Shift+P (Windows/Linux)
+- [x] Ouvrir/fermer le panel
 
 ### Notifications
-- [ ] Détecter quand un port favori est occupé
-- [ ] Envoyer notification système
+- [x] Détecter quand un port favori est occupé
+- [x] Envoyer notification système
 
 ## Phase 3 - Polish
 
