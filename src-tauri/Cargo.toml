@@ -1,6 +1,6 @@
 [package]
 name = "unbind"
-version = "1.0.3"
+version = "1.0.4"
 description = "Port Manager Menu Bar App"
 authors = ["you"]
 license = "MIT"

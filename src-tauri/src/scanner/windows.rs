@@ -1,6 +1,10 @@
 use super::{PortInfo, ScanError, ScanResult};
 use std::collections::HashMap;
+use std::os::windows::process::CommandExt;
 use std::process::Command;
+
+// Windows flag to hide console window
+const CREATE_NO_WINDOW: u32 = 0x08000000;
 
 /// Scan listening ports on Windows using netstat and tasklist
 pub fn scan_ports() -> ScanResult<Vec<PortInfo>> {
@@ -14,6 +18,7 @@ pub fn scan_ports() -> ScanResult<Vec<PortInfo>> {
     // -p TCP = TCP only (we'll run again for UDP)
     let tcp_output = Command::new("netstat")
         .args(["-ano", "-p", "TCP"])
+        .creation_flags(CREATE_NO_WINDOW)
         .output()?;
 
     let mut ports = Vec::new();
@@ -30,6 +35,7 @@ pub fn scan_ports() -> ScanResult<Vec<PortInfo>> {
     // Get UDP listeners
     let udp_output = Command::new("netstat")
         .args(["-ano", "-p", "UDP"])
+        .creation_flags(CREATE_NO_WINDOW)
         .output()?;
 
     if udp_output.status.success() {
@@ -128,6 +134,7 @@ fn parse_address_port(addr_port: &str) -> Option<(String, u16)> {
 fn build_pid_name_map() -> ScanResult<HashMap<u32, String>> {
     let output = Command::new("tasklist")
         .args(["/FO", "CSV", "/NH"]) // CSV format, no header
+        .creation_flags(CREATE_NO_WINDOW)
         .output()?;
 
     let mut map = HashMap::new();
@@ -153,6 +160,7 @@ fn build_pid_name_map() -> ScanResult<HashMap<u32, String>> {
 pub fn kill_process(pid: u32) -> ScanResult<()> {
     let output = Command::new("taskkill")
         .args(["/F", "/PID", &pid.to_string()])
+        .creation_flags(CREATE_NO_WINDOW)
         .output()?;
 
     if output.status.success() {
